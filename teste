@@ -69,14 +69,42 @@ MENUPOS: 	.word 0xFF004B3C
 	li $v0, 32
 	syscall
 .end_macro
+.macro PSPRITE (%filepos, %filesize, %width, %height) #Print the loaded sprite done in previous macro LOADFILE		
+	li $t1, 1
+	li $t2, 0
+	la $t8, %filepos
+	lw $t8, 0($t8)
+	move $a1, $t8
+	li $s4, %filesize
+	
+COUNT:	beq $t1, %width, JUMP
+	lw $s5, 0($s4)			
+	sw $s5, 0($t8)			
+	addi $t8, $t8, 4
+	addi $s4, $s4, 4
+	addi $t2, $t2, 4
+	j COUNT
+	
+JUMP:	beq $t1, %height, END	
+	addi $t8, $t8, 320
+	subi $t8, $t8, %width
+	addi $t1, $t1, 1
+	li $t2, 0
+	j COUNT			
+END:
+.end_macro
+
+
+
 .text
 
 #OPENINIT
-	LOADFILE(INITFILE, 0XFF000000, 76800)
+	LOADFILE(INITFILE, 0xFF000000, 76800)
+
 #SLEEP DE 3 SEG
 	SLEEP(2000)
 #OPENMENU
-	LOADFILE(MENUFILE, 0xFF004B3C, 25773)
-# devolve o controle ao sistema operacional
-FIM:	li $v0,10		# syscall de exit
+	LOADFILE(MENUFILE, 0xFF004B3C, 20000)
+	PSPRITE(0xFF004B3C, 20000, 200, 100)
+	li $v0,10		# syscall de exit
 	syscall
