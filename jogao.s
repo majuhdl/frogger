@@ -1,23 +1,41 @@
 # funcao leteclado utiliza registradores $t0 a $t2 para leitura do teclado, tecla do teclado inscrita em $a0
 # guardar $s7 para salvar label de onde se encontra
 .data
-FILE1:	.asciiz "abcd.bin"
-FILE2:	.asciiz "car1.bin"
-FILE3:	.asciiz "car2.bin"
-FILE4:	.asciiz "car3.bin"
-FILE5:	.asciiz "cobra.bin"
-FILE6:	.asciiz "faixas.bin"
-FILE7:	.asciiz "frog.bin"
-FILE8:	.asciiz "jacare.bin"
-FILE9:	.asciiz "mosca.bin"
-FILE10:	.asciiz "sapochegada.bin"
-FILE11:	.asciiz "troncomaior.bin"
-FILE12:	.asciiz "troncomenor.bin"
-FILE13:	.asciiz "teladeinicio.bin"
-FILE14:	.asciiz "menu.bin"
-FILE15:	.asciiz "teladefim.bin"
+FILE1:		.asciiz "abcd.bin"
+FILE2:		.asciiz "car1.bin"
+FILE3:		.asciiz "car2.bin"
+FILE4:		.asciiz "car3.bin"
+FILE5:		.asciiz "cobra.bin"
+FILE6:		.asciiz "faixas.bin"
+FILE7:		.asciiz "frog.bin"
+FILE8:		.asciiz "jacare.bin"
+FILE9:		.asciiz "mosca.bin"
+FILE10:		.asciiz "sapochegada.bin"
+FILE11:		.asciiz "troncomaior.bin"
+FILE12:		.asciiz "troncomenor.bin"
+FILE13:		.asciiz "teladeinicio.bin"
+FILE14:		.asciiz "menu.bin"
+FILE15:		.asciiz "teladefim.bin"
 
 .text
+	j INICIO
+GUARDA_RA:
+	addi $s7, $ra, 4 	# guarda o endereço pc+4 em s7 para uso na funcao do teclado
+	jr $ra
+LETECLADO:			# funcionamento similar ao de chamamento de funcao, eh pulada na primeira execucao de abertura do programa
+	jal ECHOTECLADO       	# Verifica teclado por uma tecla
+	move $a0,$t2
+	jr $s7			# faz programa voltar para onde estava
+ECHOTECLADO:			# espera por uma tecla
+ 	la $t1,0xFF100000	# carrega endereco do teclado
+LOOPTECLADO:
+ 	lw $t0,0($t1)		# Le bit de Controle Teclado
+   	andi $t0,$t0,0x0001	
+   	beq $t0,$zero,LOOPTECLADO	#Espera por uma tecla
+   	lw $t2,4($t1)  		# Tecla lida
+   	sw $t2,12($t1)  	# escreve no display
+	jr $ra
+INICIO:
 # Preenche a tela de vermelho
 	la $t1,0xFF000000	# endereco inicial da Memoria VGA
 	la $t2,0xFF012C00	# endereco final 
@@ -28,19 +46,6 @@ LOOP:
 	addi $t1,$t1,4		# soma 4 ao endereco
 	j LOOP			# fica no loop
 	li $s0,0
-LETECLADO:			# funcionamento similar ao de chamamento de funcao, eh pulada na primeira execucao de abertura do programa
-	jal ECHOTECLADO       	# Verifica teclado por uma tecla
-	move $a0,$t2
-	add $ra, $s7, $zero	# altera o valor de $ra de forma que a funcao leteclado seja reaproveitavel
-	jr $ra			# faz programa voltar para onde estava
-ECHOTECLADO:			# espera por uma tecla
- 	la $t1,0xFF100000	# carrega endereco do teclado
-LOOPTECLADO:
- 	lw $t0,0($t1)		# Le bit de Controle Teclado
-   	andi $t0,$t0,0x0001	
-   	beq $t0,$zero,LOOPTECLADO	#Espera por uma tecla
-   	lw $t2,4($t1)  		# Tecla lida
-	jr $ra
 ABERTURA:			# Abertura do jogo
 	la $a0,FILE13		# Endereco da string do nome do arquivo
 	li $a1,0		# Leitura
@@ -76,12 +81,12 @@ PRINTAMENU:
 	li $v0,16		# syscall de close file
 	syscall			# retorna se foi tudo Ok
 MENU:				# tela de selecao para o jogador
-	addi $s7, pc, 4
+	jal GUARDA_RA
 	j LETECLADO
 	move $t1, $a0
-	addi $t2, $zero, 1
+	addi $t2, $zero, 49	# código do numero 1 na tabela asc
 	beq $t1, $t2, PRINTABULEIRO
-	addi $t2, $zero, 2
+	addi $t2, $zero, 50	# código do numero 2 na tabela asc
 	beq $t1, $t2, FIM
 	j MENU
 PRINTABULEIRO:			# Abre cenario
@@ -289,9 +294,20 @@ PRINTABULEIRO:			# Abre cenario
 	li $v0,16		# syscall de close file
 	syscall			# retorna se foi tudo Ok
 JOGO:				# inicia leitura de teclado
-
+	jal GUARDA_RA
+	j LETECLADO
+	move $t1, $a0
+	addi $t2, $zero, 97	# código da letra a na tabela asc, esquerda
+	beq $t1, $t2, 
+	addi $t2, $zero, 100	# código do letra d na tabela asc, direita
+	beq $t1, $t2,
+	addi $t2, $zero, 119	# código do letra w na tabela asc, cima
+	beq $t1, $t2,
+	addi $t2, $zero, 115	# código do letra s na tabela asc, baixo
+	beq $t1, $t2,
+	j JOGO
 FIM:
-	# Abre o arquivo
+# Abre o arquivo
 	la $a0,FILE15		# encerramento
 	li $a1,0		# Leitura
 	li $a2,0		# binario
